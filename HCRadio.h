@@ -17,7 +17,7 @@ class HCRadioResult
 
 		unsigned long decimal;
 		unsigned int length;
-		unsigned int delay;
+		unsigned long delay;
 		unsigned int* raw;
 
 		void clear();
