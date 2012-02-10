@@ -85,15 +85,12 @@ char* HCRadioResult::bin2tristate(char* bin)
 
 char* HCRadioResult::dec2bin(unsigned long dec, unsigned int bit_length)
 {
-	// CRAP THAT DON'T WORK !!!!!
-
-	char bin[bit_length + 1];
+	// CRAP THAT MIGHT WORK !!!!!
+	static char bin[33];
+	bit_length = min(33, bit_length);
 
 	for(int i = 0; i < bit_length; i ++)
 	{
-		Serial.print(i + ": ");
-		Serial.println(dec, DEC);
-
 		if(dec == 0) bin[bit_length - 1 - i] = 0;
 		else
 		{
