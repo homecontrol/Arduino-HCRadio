@@ -99,7 +99,7 @@ char* HCRadioResult::dec2bin(unsigned long dec, unsigned int bit_length)
 	static const int max_length = 32 + 1; // 32 bit + newline
 	static char bin[max_length];
 
-	bit_length = min(max_length, bit_length);
+	bit_length = min(max_length - 1, bit_length);
 
 	for(int i = 0; i < bit_length; i ++)
 	{
