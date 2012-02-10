@@ -24,19 +24,21 @@ String HCRadioResult::get_json()
 	// TODO: Generate json description of result.
 
 	if (decimal == 0)
-		return "{\"error\":\"unknown encoding\"}";
+		return "{\"error\": \"unknown encoding\"}";
 
 	String json = "";
 
-	json += "\"decimal\":";
-	json += "\"" + String(decimal) + "\" (" + length + "),";
+	json += "\"decimal\": ";
+	json += "\"" + String(decimal) + "\" (" + length + "), ";
 
-	char* b = dec2bin(decimal, length);
-	json += "\"binary\":";
-	json += "\"" + String(b) + "\",";
+	char* b = HCRadioResult::dec2bin(decimal, length);
+	char* t = HCRadioResult::bin2tristate(b);
 
-//	json += "\"tristate\":";
-//	json += "\"" + String(HCRadioResult::bin2tristate(b)) + "\",";
+	json += "\"binary\": ";
+	json += "\"" + String(b) + "\", ";
+
+	json += "\"tristate\": ";
+	json += "\"" + String(t) + "\", ";
 //
 //	json += "\"pulse_length\":";
 //	json += "\"" + String(delay) + "\",";
@@ -53,45 +55,55 @@ String HCRadioResult::get_json()
 
 char* HCRadioResult::bin2tristate(char* bin)
 {
-	char returnValue[50];
-	int pos = 0;
-	int pos2 = 0;
+	static const int max_length = 16 + 1; // 32 bits / 2 + newline
+	static char tristate[max_length];
 
-	while (bin[pos] != '\0' && bin[pos + 1] != '\0')
-	{
-		if (bin[pos] == '0' && bin[pos + 1] == '0')
-		{
-			returnValue[pos2] = '0';
-		}
-		else if (bin[pos] == '1' && bin[pos + 1] == '1')
-		{
-			returnValue[pos2] = '1';
-		}
-		else if (bin[pos] == '0' && bin[pos + 1] == '1')
-		{
-			returnValue[pos2] = 'F';
-		}
-		else
-		{
-			return "not applicable";
-		}
-		pos = pos + 2;
-		pos2++;
-	}
-
-	returnValue[pos2] = '\0';
-	return returnValue;
+//	int i = 0;
+//
+//	for(i = 0; i < max_length; i ++)
+//	{
+//		Serial.println(i, DEC);
+//		Serial.println(String(bin[i]));
+//		Serial.println(String(bin[i + 1]));
+//
+//		if(bin[i] == '\0' || bin[i + 1] == '\0')
+//			break;
+//
+//		if(bin[i] == '0' && bin[i + 1] == '0')
+//		{
+//			tristate[i] = '0';
+//			Serial.println("0");
+//		}
+//
+//		else if(bin[i] == '1' && bin[i + 1] == '1')
+//		{
+//			tristate[i] = '1';
+//			Serial.println("1");
+//		}
+//
+//		else if(bin[i] == '0' && bin[i + 1] == '1')
+//		{
+//			tristate[i] = 'F';
+//			Serial.println("2");
+//		}
+//
+//		else return "invalid";
+//	}
+//
+//	tristate[i + 1] = '\0';
+	return bin;
 }
 
 char* HCRadioResult::dec2bin(unsigned long dec, unsigned int bit_length)
 {
-	// CRAP THAT MIGHT WORK !!!!!
-	static char bin[33];
-	bit_length = min(33, bit_length);
+	static const int max_length = 32 + 1; // 32 bit + newline
+	static char bin[max_length];
+
+	bit_length = min(max_length, bit_length);
 
 	for(int i = 0; i < bit_length; i ++)
 	{
-		if(dec == 0) bin[bit_length - 1 - i] = 0;
+		if(dec == 0) bin[bit_length - 1 - i] = '0';
 		else
 		{
 			bin[bit_length - 1 - i] = (dec & 1 > 0) ? '1' : '0';
