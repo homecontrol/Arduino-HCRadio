@@ -21,36 +21,56 @@ bool HCRadioResult::is_ready()
 
 String HCRadioResult::get_json()
 {
-	// TODO: Generate json description of result.
+	String json = "{";
+
+	json += "\"type\": ";
+	json += "\"RF\", ";
 
 	if (decimal == 0)
-		return "{\"error\": \"unknown encoding\"}";
-
-	String json = "";
+	{
+		json += "\"error\": \"unkown_encoding\"";
+		return json;
+	}
 
 	json += "\"decimal\": ";
-	json += "\"" + String(decimal) + "\" (" + length + "), ";
+	json += "\"" + String(decimal) + "\", ";
+
+	json += "\"bit_length\": ";
+	json += "\"" + String(length) + "\", ";
 
 	char* b = HCRadioResult::dec2bin(decimal, length);
-	char* t = HCRadioResult::bin2tristate(b);
 
 	json += "\"binary\": ";
-	json += "\"" + String(b) + "\", ";
+	json += "\"" + String(decimal) + "\", ";
+
+	char* t = HCRadioResult::bin2tristate(b);
 
 	json += "\"tristate\": ";
 	json += "\"" + String(t) + "\", ";
-//
-//	json += "\"pulse_length\":";
-//	json += "\"" + String(delay) + "\",";
-//
-//	if(length > 0)
-//	{
-//		json += "\"raw\": [\"" + String(raw[0]) + "\"";
-//		for (int i = 1; i <= length * 2; i++)
-//			json += ",\"" + String(raw[i]) + "\"";
-//	}
 
-	return "{" + json + "}";
+	json += "\"pulse_length\":";
+	json += "\"" + String(delay) + "\",";
+
+	if(length > 0)
+	{
+//		json += "\"raw\": [\"" + String(raw[0], DEC) + "\"";
+//		for (int i = 1; i <= length * 2; i++)
+//			json += ",\"" + String(raw[i], DEC) + "\"";
+//		json += "]";
+		Serial.print("Raw data ");
+		Serial.print(length, DEC);
+		Serial.println();
+		for (int i = 0; i <= length * 2; i++)
+		{
+			Serial.print(i, DEC);
+			Serial.print(",");
+		}
+		Serial.println();
+	}
+
+	json += "}";
+
+	return json;
 }
 
 char* HCRadioResult::bin2tristate(char* bin)
@@ -58,40 +78,29 @@ char* HCRadioResult::bin2tristate(char* bin)
 	static const int max_length = 16 + 1; // 32 bits / 2 + newline
 	static char tristate[max_length];
 
-//	int i = 0;
-//
-//	for(i = 0; i < max_length; i ++)
-//	{
-//		Serial.println(i, DEC);
-//		Serial.println(String(bin[i]));
-//		Serial.println(String(bin[i + 1]));
-//
-//		if(bin[i] == '\0' || bin[i + 1] == '\0')
-//			break;
-//
-//		if(bin[i] == '0' && bin[i + 1] == '0')
-//		{
-//			tristate[i] = '0';
-//			Serial.println("0");
-//		}
-//
-//		else if(bin[i] == '1' && bin[i + 1] == '1')
-//		{
-//			tristate[i] = '1';
-//			Serial.println("1");
-//		}
-//
-//		else if(bin[i] == '0' && bin[i + 1] == '1')
-//		{
-//			tristate[i] = 'F';
-//			Serial.println("2");
-//		}
-//
-//		else return "invalid";
-//	}
-//
-//	tristate[i + 1] = '\0';
-	return bin;
+	int i = 0, j = 0;
+
+	for(i = 0; i < (max_length - 1); i ++)
+	{
+		j = 2 * i;
+
+		if(bin[j] == '\0' || bin[j + 1] == '\0')
+			break;
+
+		if(bin[j] == '0' && bin[j + 1] == '0')
+			tristate[i] = '0';
+
+		else if(bin[j] == '1' && bin[j + 1] == '1')
+			tristate[i] = '1';
+
+		else if(bin[j] == '0' && bin[j + 1] == '1')
+			tristate[i] = 'F';
+
+		else return "invalid";
+	}
+
+	tristate[i + 1] = '\0';
+	return tristate;
 }
 
 char* HCRadioResult::dec2bin(unsigned long dec, unsigned int bit_length)
