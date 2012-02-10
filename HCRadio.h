@@ -49,7 +49,7 @@ class HCRadio
 		void sync();
 		bool send_tristate(char* code);
 
-		static HCRadioResult& get_result();
+		static HCRadioResult get_result();
 
 	private:
 

@@ -21,8 +21,6 @@ bool HCRadioResult::is_ready()
 
 String HCRadioResult::get_json()
 {
-	noInterrupts();
-
 	// TODO: Generate json description of result.
 
 	if (decimal == 0)
@@ -31,18 +29,18 @@ String HCRadioResult::get_json()
 	String json = "";
 
 	json += "\"decimal\":";
-	json += "\"" + String(decimal) + "\",";
+	json += "\"" + String(decimal) + "\" (" + length + "),";
 
-//	char* b = dec2bin(decimal, length);
-//	json += "\"binary\":";
-//	json += "\"" + String(b) + "\",";
+	char* b = dec2bin(decimal, length);
+	json += "\"binary\":";
+	json += "\"" + String(b) + "\",";
 
 //	json += "\"tristate\":";
 //	json += "\"" + String(HCRadioResult::bin2tristate(b)) + "\",";
-
+//
 //	json += "\"pulse_length\":";
 //	json += "\"" + String(delay) + "\",";
-
+//
 //	if(length > 0)
 //	{
 //		json += "\"raw\": [\"" + String(raw[0]) + "\"";
@@ -50,7 +48,6 @@ String HCRadioResult::get_json()
 //			json += ",\"" + String(raw[i]) + "\"";
 //	}
 
-	interrupts();
 	return "{" + json + "}";
 }
 
@@ -88,28 +85,24 @@ char* HCRadioResult::bin2tristate(char* bin)
 
 char* HCRadioResult::dec2bin(unsigned long dec, unsigned int bit_length)
 {
-	static char bin[64];
-	unsigned int i = 0;
+	// CRAP THAT DON'T WORK !!!!!
 
-	while (dec > 0)
-	{
-		bin[32 + i++] = (dec & 1 > 0) ? '1' : '0';
-		dec = dec >> 1;
-	}
+	char bin[bit_length + 1];
 
-	for (unsigned int j = 0; j < bit_length; j++)
+	for(int i = 0; i < bit_length; i ++)
 	{
-		if (j >= bit_length - i)
-		{
-			bin[j] = bin[31 + i - (j - (bit_length - i))];
-		}
+		Serial.print(i + ": ");
+		Serial.println(dec, DEC);
+
+		if(dec == 0) bin[bit_length - 1 - i] = 0;
 		else
 		{
-			bin[j] = '0';
+			bin[bit_length - 1 - i] = (dec & 1 > 0) ? '1' : '0';
+			dec = dec >> 1;
 		}
 	}
-	bin[bit_length] = '\0';
 
+	bin[bit_length + 1] = '\0';
 	return bin;
 }
 
@@ -159,35 +152,6 @@ void HCRadio::set_pulse_length(int pulse_length)
 	this->pulse_length = pulse_length;
 }
 
-void output(unsigned long decimal, unsigned int length, unsigned int delay,
-		unsigned int* raw) {
-
-	if (decimal == 0) {
-		Serial.print("Unknown encoding.");
-	} else {
-		char* b = HCRadioResult::dec2bin(decimal, length);
-		Serial.print("Decimal: ");
-		Serial.print(decimal);
-		Serial.print(" (");
-		Serial.print(length);
-		Serial.print("Bit) Binary: ");
-		Serial.print(b);
-		Serial.print(" Tri-State: ");
-		Serial.print(HCRadioResult::bin2tristate(b));
-		Serial.print(" PulseLength: ");
-		Serial.print(delay);
-		Serial.println(" microseconds");
-	}
-
-	Serial.print("Raw data: ");
-	for (int i = 0; i <= length * 2; i++) {
-		Serial.print(raw[i]);
-		Serial.print(",");
-	}
-	Serial.println();
-	Serial.println();
-}
-
 void HCRadio::receive_interrupt()
 {
 	static unsigned int duration;
@@ -197,6 +161,7 @@ void HCRadio::receive_interrupt()
 	static unsigned int repeat_count;
 
 	noInterrupts();
+	cli();
 
 	long time = micros();
 	duration = time - last_time;
@@ -236,11 +201,10 @@ void HCRadio::receive_interrupt()
 			}
 			code = code >> 1;
 
-			HCRadioResult &result = HCRadio::get_result();
-			result.decimal = code;
-			result.length = change_count / 2;
-			result.delay = delay;
-			result.raw = timings;
+			hcradio_result.decimal = code;
+			hcradio_result.length = change_count / 2;
+			hcradio_result.delay = delay;
+			hcradio_result.raw = timings;
 			//output(code, change_count / 2, delay, timings);
 
 			repeat_count = 0;
@@ -261,6 +225,7 @@ void HCRadio::receive_interrupt()
 	last_time = time;
 
 	interrupts();
+	sei();
 }
 
 void HCRadio::send_0()
@@ -343,7 +308,16 @@ bool HCRadio::send_tristate(char* code)
 	return valid_chars;
 }
 
-HCRadioResult& HCRadio::get_result()
+HCRadioResult HCRadio::get_result()
 {
-	return hcradio_result;
+	noInterrupts();
+	cli();
+
+	HCRadioResult r = hcradio_result;
+	hcradio_result.clear();
+
+	interrupts();
+	sei();
+
+	return r;
 }
