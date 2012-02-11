@@ -27,7 +27,7 @@ String HCRadioResult::get_json()
 
 	if (decimal == 0)
 	{
-		json += "\"error\": \"unkown_encoding\"";
+		json += "\"error\": \"unkown_encoding\" }";
 		return json;
 	}
 
@@ -40,7 +40,7 @@ String HCRadioResult::get_json()
 	char* b = HCRadioResult::dec2bin(decimal, length);
 
 	json += "\"binary\": ";
-	json += "\"" + String(decimal) + "\", ";
+	json += "\"" + String(b) + "\", ";
 
 	char* t = HCRadioResult::bin2tristate(b);
 
@@ -49,7 +49,7 @@ String HCRadioResult::get_json()
 
 	json += "\"pulse_length\":";
 	json += "\"" + String(delay) + "\",";
-//
+
 //	if(length > 0)
 //	{
 ////		json += "\"raw\": [\"" + String(raw[0], DEC) + "\"";
@@ -57,9 +57,9 @@ String HCRadioResult::get_json()
 ////			json += ",\"" + String(raw[i], DEC) + "\"";
 ////		json += "]";
 //		Serial.print("Raw data: ");
-//		for (int i = 0; i < min(HCRADIO_MAX_CHANGES, length * 2); i++)
+//		for (int i = 0; i <= length * 2; i++)
 //		{
-//			Serial.print(raw[i]);
+//			Serial.print(timings[i]);
 //			Serial.print(",");
 //		}
 //		Serial.println();
@@ -169,14 +169,11 @@ void HCRadio::set_pulse_length(int pulse_length)
 
 void HCRadio::receive_interrupt()
 {
-	static unsigned int duration;
-	static unsigned int change_count;
-	static unsigned int timings[HCRADIO_MAX_CHANGES];
-	static unsigned long last_time;
-	static unsigned int repeat_count;
-
-	noInterrupts();
-	cli();
+	volatile static unsigned int duration;
+	volatile static unsigned int change_count;
+	volatile static unsigned int timings[HCRADIO_MAX_CHANGES];
+	volatile static unsigned long last_time;
+	volatile static unsigned int repeat_count;
 
 	long time = micros();
 	duration = time - last_time;
@@ -216,11 +213,16 @@ void HCRadio::receive_interrupt()
 			}
 			code = code >> 1;
 
-			hcradio_result.decimal = code;
-			hcradio_result.length = change_count / 2;
-			hcradio_result.delay = delay;
-			//hcradio_result.raw = timings;
-			//output(code, change_count / 2, delay, timings);
+			// Don't overwrite any existing result!
+			if(!hcradio_result.is_ready())
+			{
+				hcradio_result.decimal = code;
+				hcradio_result.length = change_count / 2;
+				hcradio_result.delay = delay;
+				//memcpy(hcradio_result.timings, timings, sizeof(unsigned int) * (1 + change_count));
+				//hcradio_result.raw = timings;
+				//output(code, change_count / 2, delay, timings);
+			}
 
 			repeat_count = 0;
 		}
@@ -238,9 +240,6 @@ void HCRadio::receive_interrupt()
 	}
 	timings[change_count++] = duration;
 	last_time = time;
-
-	interrupts();
-	sei();
 }
 
 void HCRadio::send_0()
@@ -325,14 +324,17 @@ bool HCRadio::send_tristate(char* code)
 
 HCRadioResult HCRadio::get_result()
 {
-	noInterrupts();
-	cli();
+	HCRadioResult r;
 
-	HCRadioResult r = hcradio_result;
-	hcradio_result.clear();
+	if(hcradio_result.is_ready())
+	{
+		noInterrupts();
 
-	interrupts();
-	sei();
+		r = hcradio_result;
+		hcradio_result.clear();
+
+		interrupts();
+	}
 
 	return r;
 }
