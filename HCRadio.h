@@ -17,21 +17,12 @@
 class HCRadioResult
 {
 	public:
-
-		HCRadioResult();
-
+		bool ready;
 		unsigned long decimal;
 		unsigned int length;
 		unsigned long delay;
 		unsigned int timings[HCRADIO_MAX_CHANGES];
-
-		void clear();
-		bool is_ready();
-		String get_json();
-
-		static char* bin2tristate(char* bin);
-		static char* dec2bin(unsigned long dec, unsigned int bit_length);
-
+		String json;
 };
 
 class HCRadio
@@ -54,7 +45,7 @@ class HCRadio
 		void sync();
 		bool send_tristate(char* code);
 
-		static HCRadioResult get_result();
+		bool decode(HCRadioResult* result);
 
 	private:
 
@@ -64,8 +55,11 @@ class HCRadio
 		int send_pin;
 		int send_repeat;
 
-		static void receive_interrupt();
 		void transmit(int high, int low);
+
+		static void receive_interrupt();
+//		static char* bin2tristate(char* bin);
+//		static char* dec2bin(unsigned long dec, unsigned int bit_length);
 };
 
 #endif
