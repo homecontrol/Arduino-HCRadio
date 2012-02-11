@@ -3,7 +3,7 @@
 static HCRadioResult hcradio_result;
 
 HCRadioResult::HCRadioResult()
-:decimal(-1),length(-1),delay(-1),raw(NULL)
+:decimal(-1),length(-1),delay(-1)
 {};
 
 void HCRadioResult::clear()
@@ -11,7 +11,6 @@ void HCRadioResult::clear()
 	decimal = -1;
 	length = -1;
 	delay = -1;
-	raw = NULL;
 }
 
 bool HCRadioResult::is_ready()
@@ -50,23 +49,21 @@ String HCRadioResult::get_json()
 
 	json += "\"pulse_length\":";
 	json += "\"" + String(delay) + "\",";
-
-	if(length > 0)
-	{
-//		json += "\"raw\": [\"" + String(raw[0], DEC) + "\"";
-//		for (int i = 1; i <= length * 2; i++)
-//			json += ",\"" + String(raw[i], DEC) + "\"";
-//		json += "]";
-		Serial.print("Raw data ");
-		Serial.print(length, DEC);
-		Serial.println();
-		for (int i = 0; i <= length * 2; i++)
-		{
-			Serial.print(i, DEC);
-			Serial.print(",");
-		}
-		Serial.println();
-	}
+//
+//	if(length > 0)
+//	{
+////		json += "\"raw\": [\"" + String(raw[0], DEC) + "\"";
+////		for (int i = 1; i <= length * 2; i++)
+////			json += ",\"" + String(raw[i], DEC) + "\"";
+////		json += "]";
+//		Serial.print("Raw data: ");
+//		for (int i = 0; i < min(HCRADIO_MAX_CHANGES, length * 2); i++)
+//		{
+//			Serial.print(raw[i]);
+//			Serial.print(",");
+//		}
+//		Serial.println();
+//	}
 
 	json += "}";
 
@@ -222,7 +219,7 @@ void HCRadio::receive_interrupt()
 			hcradio_result.decimal = code;
 			hcradio_result.length = change_count / 2;
 			hcradio_result.delay = delay;
-			hcradio_result.raw = timings;
+			//hcradio_result.raw = timings;
 			//output(code, change_count / 2, delay, timings);
 
 			repeat_count = 0;

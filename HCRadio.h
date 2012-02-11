@@ -23,7 +23,7 @@ class HCRadioResult
 		unsigned long decimal;
 		unsigned int length;
 		unsigned long delay;
-		unsigned int* raw;
+		//unsigned int timings[HCRADIO_MAX_CHANGES];
 
 		void clear();
 		bool is_ready();
