@@ -58,8 +58,6 @@ class HCRadio
 		void transmit(int high, int low);
 
 		static void receive_interrupt();
-//		static char* bin2tristate(char* bin);
-//		static char* dec2bin(unsigned long dec, unsigned int bit_length);
 };
 
 #endif
