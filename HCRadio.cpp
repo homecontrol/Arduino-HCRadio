@@ -1,6 +1,6 @@
 #include <HCRadio.h>
 
-volatile HCRadioResult hcradio_result;
+HCRadioResult hcradio_result;
 
 HCRadio::HCRadio()
 :status_pin(-1), irq(-1), pulse_length(-1), send_pin(-1), send_repeat(-1)
@@ -53,12 +53,12 @@ void HCRadio::set_pulse_length(int pulse_length)
 void HCRadio::receive_interrupt()
 {
 	volatile static unsigned int change_count = 0;
-	volatile static unsigned int timings[HCRADIO_MAX_CHANGES];
+	static unsigned int timings[HCRADIO_MAX_CHANGES];
 	volatile static unsigned long last_time = micros();
 	volatile static unsigned int repeat_count = 0;
 	volatile static bool working = false;
 
-	if(working == true || hcradio_result.ready = false)
+	if(working == true || hcradio_result.ready == false)
 		return;
 
 	long time = micros();
@@ -76,7 +76,7 @@ void HCRadio::receive_interrupt()
 			unsigned long code = 0;
 			unsigned long delay = timings[0] / 31;
 			unsigned long delay_tolerance = delay * 0.3;
-			for (int i = 1; i < change_count; i = i + 2)
+			for (unsigned int i = 1; i < change_count; i = i + 2)
 			{
 				if (timings[i] > delay - delay_tolerance &&
 					timings[i] < delay + delay_tolerance &&
@@ -129,7 +129,7 @@ void HCRadio::receive_interrupt()
 
 	working = false;
 	interrupts();
-	seil();
+	sei();
 }
 
 void HCRadio::send_0()
@@ -236,7 +236,7 @@ bool HCRadio::decode(HCRadioResult* result)
 		if(result->length > 0)
 		{
 			result->json += ",\"timings\": [\"" + String(result->timings[0], DEC) + "\"";
-			for(int i = 1; i < 2 * result->length; i ++)
+			for(unsigned int i = 1; i < 2 * result->length; i ++)
 				result->json += ", \"" + String(result->timings[0], DEC) + "\"";
 			result->json += "]";
 		}
