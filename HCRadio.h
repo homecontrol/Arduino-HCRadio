@@ -17,12 +17,14 @@
 class HCRadioResult
 {
 	public:
+
 		bool ready;
-		unsigned long decimal;
-		unsigned int length;
-		unsigned long delay;
-		unsigned int timings[HCRADIO_MAX_CHANGES];
-		String json;
+		unsigned long pulse_length;
+		unsigned long timings[HCRADIO_MAX_CHANGES];
+		unsigned int len_timings;
+		unsigned long last_time;
+		unsigned int repeat_count;
+		unsigned int change_count;
 };
 
 class HCRadio

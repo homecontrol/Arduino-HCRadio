@@ -1,11 +1,16 @@
 #include <HCRadio.h>
 
-HCRadioResult hcradio_result;
+volatile HCRadioResult hcradio_result;
 
 HCRadio::HCRadio()
 :status_pin(-1), irq(-1), pulse_length(-1), send_pin(-1), send_repeat(-1)
 {
 	hcradio_result.ready = false;
+	hcradio_result.pulse_length = 0;
+	hcradio_result.len_timings = 0;
+	hcradio_result.last_time = 0;
+	hcradio_result.repeat_count = 0;
+	hcradio_result.change_count = 0;
 }
 
 void HCRadio::enable_receive(int irq)
@@ -52,84 +57,38 @@ void HCRadio::set_pulse_length(int pulse_length)
 
 void HCRadio::receive_interrupt()
 {
-	volatile static unsigned int change_count = 0;
-	static unsigned int timings[HCRADIO_MAX_CHANGES];
-	volatile static unsigned long last_time = micros();
-	volatile static unsigned int repeat_count = 0;
-	volatile static bool working = false;
+	unsigned long time = micros();
+	unsigned long duration = time - hcradio_result.last_time;
 
-	if(working == true || hcradio_result.ready == false)
-		return;
-
-	long time = micros();
-
-	noInterrupts();
-	cli();
-
-	unsigned long duration = time - last_time;
-	if (duration > 5000 && duration > timings[0] - 200 && duration < timings[0] + 200)
+	if(duration > 5000 &&
+	   duration > hcradio_result.timings[0] - 200 &&
+	   duration < hcradio_result.timings[0] + 200)
 	{
-		repeat_count ++;
-		change_count --;
-		if (repeat_count == 2)
+		hcradio_result.repeat_count ++;
+		hcradio_result.change_count --; // ??
+
+		if(hcradio_result.repeat_count == 2)
 		{
-			unsigned long code = 0;
-			unsigned long delay = timings[0] / 31;
-			unsigned long delay_tolerance = delay * 0.3;
-			for (unsigned int i = 1; i < change_count; i = i + 2)
-			{
-				if (timings[i] > delay - delay_tolerance &&
-					timings[i] < delay + delay_tolerance &&
-					timings[i + 1] > delay * 3 - delay_tolerance &&
-					timings[i + 1] < delay * 3 + delay_tolerance)
-				{
-					code = code << 1; // High
-				}
-				else if (timings[i] > delay * 3 - delay_tolerance &&
-						 timings[i] < delay * + delay_tolerance &&
-						 timings[i + 1] > delay - delay_tolerance &&
-						 timings[i + 1] < delay + delay_tolerance)
-				{
-					code += 1;
-					code = code << 1; // Low
-				}
-				else
-				{
-					// Failed
-					i = change_count;
-					code = 0;
-					repeat_count = 0;
-				}
-			}
-			code = code >> 1;
-
-			hcradio_result.decimal = code;
-			hcradio_result.length = change_count / 2;
-			hcradio_result.delay = delay;
 			hcradio_result.ready = true;
-			memcpy(hcradio_result.timings, timings, sizeof(unsigned int) * change_count);
-
-			repeat_count = 0;
+			hcradio_result.len_timings = hcradio_result.change_count;
+			hcradio_result.repeat_count = 0;
 		}
-		change_count = 0;
+
+		hcradio_result.change_count = 0;
 	}
-	else if (duration > 5000)
+	else if(duration > 5000)
 	{
-		change_count = 0;
+		hcradio_result.change_count = 0;
 	}
 
-	if (change_count >= HCRADIO_MAX_CHANGES)
+	if(hcradio_result.change_count >= HCRADIO_MAX_CHANGES)
 	{
-		change_count = 0;
-		repeat_count = 0;
+		hcradio_result.change_count = 0;
+		hcradio_result.repeat_count = 0;
 	}
 
-	timings[change_count ++] = duration;
-	last_time = time;
-
-	working = false;
-	interrupts();
-	sei();
+	hcradio_result.timings[hcradio_result.change_count ++] = duration;
+	hcradio_result.last_time = time;
 }
 
 void HCRadio::send_0()
@@ -214,34 +173,24 @@ bool HCRadio::send_tristate(char* code)
 
 bool HCRadio::decode(HCRadioResult* result)
 {
-	if(!hcradio_result.ready)
-		return false;
-
 	noInterrupts();
-	result->decimal = hcradio_result.decimal;
-	result->length = hcradio_result.length;
-	result->delay = hcradio_result.delay;
-	memcpy(result->timings, hcradio_result.timings, 2 * result->length * sizeof(unsigned int));
+	if(hcradio_result.ready == false)
+	{
+		interrupts();
+		return false;
+	}
+
+	result->len_timings = hcradio_result.len_timings;
+	result->last_time = hcradio_result.last_time;
+
+	for(unsigned int i = 0; i < result->len_timings; i ++)
+		result->timings[i] = hcradio_result.timings[i];
+
 	hcradio_result.ready = false;
 	interrupts();
 
-	// Create json description of the result
-	result->json = "{\"type\": \"rf\", ";
-	if(result->decimal == 0) result->json += "\"error\": \"unkown_decoding\"";
-	else
-	{
-		result->json += "\"decimal\": \"" + String(result->decimal) + "\", " +
-					    "\"length\": \"" + String(result->length) + "\"";
-
-		if(result->length > 0)
-		{
-			result->json += ",\"timings\": [\"" + String(result->timings[0], DEC) + "\"";
-			for(unsigned int i = 1; i < 2 * result->length; i ++)
-				result->json += ", \"" + String(result->timings[0], DEC) + "\"";
-			result->json += "]";
-		}
-	}
-	result->json += "}";
+	if(result->len_timings > 0)
+		result->pulse_length = result->timings[0] / 31;
 
 	return true;
 }
