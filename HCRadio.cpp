@@ -55,6 +55,11 @@ void HCRadio::set_pulse_length(int pulse_length)
 	this->pulse_length = pulse_length;
 }
 
+void HCRadio::set_send_repeat(int repeat)
+{
+	this->send_repeat = repeat;
+}
+
 void HCRadio::receive_interrupt()
 {
 	unsigned long time = micros();
@@ -120,6 +125,36 @@ void HCRadio::transmit(int high, int low)
 	delayMicroseconds(pulse_length * high);
 	digitalWrite(send_pin, LOW);
 	delayMicroseconds(pulse_length * low);
+}
+
+bool HCRadio::send_raw(unsigned long* timings, unsigned int len_timings)
+{
+	if(this->status_pin != -1)
+		digitalWrite(this->status_pin, HIGH);
+
+	noInterrupts();
+	cli();
+
+	this->sync();
+	for(int i = 0; i < this->send_repeat; i ++)
+	{	
+		for(unsigned int j = 0; j < len_timings; j ++)
+		{
+			if((j % 2) == 0) digitalWrite(this->send_pin, HIGH);
+			else digitalWrite(this->send_pin, LOW);
+			delayMicroseconds(timings[j]);
+		}
+
+		this->sync();
+	}
+
+	interrupts();
+	sei();
+
+	if(this->status_pin != -1)
+		digitalWrite(this->status_pin, LOW);
+
+	return true;
 }
 
 bool HCRadio::send_tristate(char* code)

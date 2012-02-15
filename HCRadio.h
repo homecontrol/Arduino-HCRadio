@@ -12,7 +12,7 @@
 
 // Number of maximum High/Low changes per packet.
 // We can handle up to (unsigned long) => 32 bit * 2 H/L changes per bit + 2 for sync
-#define HCRADIO_MAX_CHANGES 67
+#define HCRADIO_MAX_TIMINGS 67
 
 class HCRadioResult
 {
@@ -20,7 +20,7 @@ class HCRadioResult
 
 		bool ready;
 		unsigned long pulse_length;
-		unsigned long timings[HCRADIO_MAX_CHANGES];
+		unsigned long timings[HCRADIO_MAX_TIMINGS];
 		unsigned int len_timings;
 		unsigned long last_time;
 		unsigned int repeat_count;
@@ -41,11 +41,13 @@ class HCRadio
 		void enable_send(int pin, int repeat = 10, int pulse_length = 380);
 		void disable_send();
 		void set_pulse_length(int pulse_length);
+		void set_send_repeat(int repeat);
 		void send_0();
 		void send_1();
 		void send_f();
 		void sync();
 		bool send_tristate(char* code);
+		bool send_raw(unsigned long* timings, int len_timings);
 
 		bool decode(HCRadioResult* result);
 
