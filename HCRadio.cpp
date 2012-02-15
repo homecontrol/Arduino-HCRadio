@@ -86,7 +86,7 @@ void HCRadio::receive_interrupt()
 		hcradio_result.change_count = 0;
 	}
 
-	if(hcradio_result.change_count >= HCRADIO_MAX_CHANGES)
+	if(hcradio_result.change_count >= HCRADIO_MAX_TIMINGS)
 	{
 		hcradio_result.change_count = 0;
 		hcradio_result.repeat_count = 0;

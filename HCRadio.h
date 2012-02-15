@@ -47,7 +47,7 @@ class HCRadio
 		void send_f();
 		void sync();
 		bool send_tristate(char* code);
-		bool send_raw(unsigned long* timings, int len_timings);
+		bool send_raw(unsigned long* timings, unsigned int len_timings);
 
 		bool decode(HCRadioResult* result);
 
