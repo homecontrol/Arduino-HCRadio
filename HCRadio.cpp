@@ -159,11 +159,11 @@ bool HCRadio::send_raw(unsigned long* timings, unsigned int len_timings)
 
 bool HCRadio::send_raw(const char* code)
 {
-    if(this->status_pin != -1)
-        digitalWrite(this->status_pin, HIGH);
-
     noInterrupts();
     cli();
+
+    if(this->status_pin != -1)
+        digitalWrite(this->status_pin, HIGH);
 
     this->sync();
     int t = 0;
@@ -206,11 +206,11 @@ bool HCRadio::send_raw(const char* code)
         this->sync();
     }
 
+    if(this->status_pin != -1)
+            digitalWrite(this->status_pin, LOW);
+
     interrupts();
     sei();
-
-    if(this->status_pin != -1)
-        digitalWrite(this->status_pin, LOW);
 
     if(t < 0)
         return false;
@@ -272,9 +272,15 @@ bool HCRadio::decode(HCRadioResult* result)
     noInterrupts();
     if(hcradio_result.ready == false)
     {
+        if(this->status_pin >= 0)
+            digitalWrite(this->status_pin, LOW);
+
         interrupts();
         return false;
     }
+
+    if(this->status_pin >= 0)
+        digitalWrite(this->status_pin, HIGH);
 
     result->len_timings = hcradio_result.len_timings;
     result->last_time = hcradio_result.last_time;
@@ -283,10 +289,15 @@ bool HCRadio::decode(HCRadioResult* result)
         result->timings[i] = hcradio_result.timings[i];
 
     hcradio_result.ready = false;
-    interrupts();
-
     if(result->len_timings > 0)
         result->pulse_length = result->timings[0] / 31;
+
+
+    // Switch off LED within the next decode iteration.
+    //if(this->status_pin >= 0)
+    //    digitalWrite(this->status_pin, LOW);
+
+    interrupts();
 
     return true;
 }
